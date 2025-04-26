@@ -1,0 +1,214 @@
+- name: Configure the Docker Swarm Cluster
+  hosts: all
+  become: yes
+  vars:
+    manager_node: "{{ groups['instance1'][0] }}"
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+  # Docker setup tasks
+  - name: Remove old Docker versions
+    apt:
+      name:
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+      state: absent
+      update_cache: yes
+
+  - name: Install dependencies
+    apt:
+      name:
+        - curl
+        - ca-certificates
+        - git
+        - acl
+        - python3
+        - python3-pip
+        - lsb-release
+        - wget
+        - netcat-openbsd
+        - dnsutils
+      state: present
+      update_cache: yes
+
+  # Install monitoring tools
+  - name: Install monitoring tools
+    apt:
+      name:
+        - htop
+        - iotop
+        - sysstat
+      state: present
+    become: yes
+
+  - name: Check if ctop is already installed
+    stat:
+      path: /usr/local/bin/ctop
+    register: ctop_installed
+
+  - name: Get latest ctop release from GitHub API
+    uri:
+      url: https://api.github.com/repos/bcicen/ctop/releases/latest
+      return_content: yes
+    register: ctop_release
+    when: not ctop_installed.stat.exists
+
+  - name: Install ctop from latest GitHub release
+    get_url:
+      url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{ ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-amd64"
+      dest: /usr/local/bin/ctop
+      mode: '0755'
+    become: yes
+    when: not ctop_installed.stat.exists
+
+  - name: Add Docker's official GPG key and save it in the recommended keyring
+    ansible.builtin.shell: |
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    args:
+      creates: /usr/share/keyrings/docker-archive-keyring.gpg
+    ignore_errors: yes
+
+  - name: Add Docker's repository
+    ansible.builtin.shell: |
+      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    ignore_errors: yes
+
+  - name: Update apt cache
+    ansible.builtin.apt:
+      update_cache: yes
+
+  - name: Install Docker packages
+    apt:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      state: present
+      update_cache: yes
+
+  - name: Install Docker SDK for Python
+    apt:
+      name: python3-docker
+      state: present
+
+  - name: Add users to the Docker group
+    user:
+      name: "{{ item }}"
+      groups: docker
+      append: yes
+    loop:
+      - "{{ ansible_ssh_user }}"
+    ignore_errors: yes
+
+  - name: Ensure Docker service is running
+    systemd:
+      name: docker
+      state: started
+      enabled: true
+
+  # Initialize swarm on manager
+  - name: Initialize Swarm on manager node
+    shell: docker swarm init --advertise-addr {{ inventory_hostname }}
+    when: inventory_hostname == manager_node
+    register: swarm_init
+    ignore_errors: yes
+
+  # Debug the init output
+  - name: Debug swarm init
+    debug:
+      var: swarm_init
+    when: inventory_hostname == manager_node
+
+  # Get the worker token separately
+  - name: Get swarm worker token
+    shell: docker swarm join-token -q worker
+    register: token_output
+    when: inventory_hostname == manager_node
+
+  # Debug the token output
+  - name: Debug token output
+    debug:
+      var: token_output
+    when: inventory_hostname == manager_node
+
+  # Set token as a fact on manager
+  - name: Set token fact on manager
+    set_fact:
+      worker_token: "{{ token_output.stdout }}"
+    when: inventory_hostname == manager_node
+
+  # Join workers to swarm using the token
+  - name: Join workers to swarm
+    shell: "docker swarm join --token {{ hostvars[groups['instance1'][0]].worker_token }} {{ groups['instance1'][0] }}:2377"
+    when: inventory_hostname != manager_node
+    ignore_errors: yes
+
+  # Copy configuration files
+  - name: Copy stack.yml template to manager
+    copy:
+      src: ../swarm/stack.yml
+      dest: /home/{{ ansible_ssh_user }}/stack.yml
+    delegate_to: "{{ manager_node }}"
+    run_once: true 
+
+  - name: Get manager node IP
+    shell: hostname -I | awk '{print $1}'
+    register: manager_ip_result
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  - name: Get manager and worker IPs for stack
+    set_fact:
+      manager_ip_value: "{{ manager_ip_result.stdout }}"
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  - name: Create .env file for stack deployment
+    template:
+      src: stack.env.j2
+      dest: /home/{{ ansible_ssh_user }}/.env
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  - name: Process stack.yml template with environment variables
+    template:
+      src: ../swarm/stack.yml
+      dest: /home/{{ ansible_ssh_user }}/stack.yml
+    vars:
+      manager_ip: "{{ manager_ip_value }}"
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  - name: Deploy the stack on manager
+    shell: docker stack deploy --with-registry-auth -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
+    args:
+      chdir: /home/{{ ansible_ssh_user }}
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  - name: Wait for services to start up (100 seconds)
+    pause:
+      seconds: 50
+
+  # Check service status
+  - name: Check service status
+    command: docker service ls
+    register: service_status
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+
+  # Get final status
+  - name: Show service status
+    command: docker service ls
+    delegate_to: "{{ manager_node }}"
+    run_once: true
+    register: final_service_status
+    ignore_errors: yes
+  
+  - name: Display service status
+    debug:
+      var: final_service_status.stdout_lines
+    when: final_service_status is defined
