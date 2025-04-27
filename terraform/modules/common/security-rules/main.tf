@@ -11,7 +11,7 @@ variable "project_tags" {
   default     = {
     Project     = "mineclifford"
     ManagedBy   = "terraform"
-    Owner       = "dell"
+    Owner       = "minecraft"
   }
 }
 
@@ -20,13 +20,18 @@ locals {
   common_tcp_ports = {
     ssh                = 22,
     http               = 80,
+    https              = 443,
+    minecraft_java     = 25565,
+    minecraft_bedrock  = 19132,
+    rcon               = 25575,
     postgres           = 5432,
     dns_tcp            = 53,
     mongodb            = 27017
   }
   
   common_udp_ports = {
-    dns_udp            = 53
+    dns_udp            = 53,
+    minecraft_bedrock  = 19132
   }
   
   # Generate numbered tcp rules starting at priority 100
