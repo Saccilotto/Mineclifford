@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-bedrock
+  labels:
+    app: minecraft-bedrock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-bedrock
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minecraft-bedrock
+    spec:
+      containers:
+      - name: minecraft-bedrock
+        image: itzg/minecraft-bedrock-server:latest
+        env:
+        - name: EULA
+          value: "TRUE"
+        - name: GAMEMODE
+          value: "survival"
+        - name: DIFFICULTY
+          value: "normal"
+        - name: SERVER_NAME
+          value: "Mineclifford Bedrock Server"
+        - name: LEVEL_NAME
+          value: "Mineclifford"
+        - name: ALLOW_CHEATS
+          value: "false"
+        - name: TZ
+          value: "America/Sao_Paulo"
+        ports:
+        - containerPort: 19132
+          protocol: UDP
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: minecraft-bedrock-data
+          mountPath: /data
+      volumes:
+      - name: minecraft-bedrock-data
+        persistentVolumeClaim:
+          claimName: minecraft-bedrock-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-bedrock
+spec:
+  selector:
+    app: minecraft-bedrock
+  ports:
+  - port: 19132
+    targetPort: 19132
+    protocol: UDP
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minecraft-bedrock-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard

@@ -9,11 +9,11 @@ Mineclifford is a tool designed to facilitate the creation and management of Min
 ## Features
 
 - **Multiple provider support**: AWS and Azure
+- **Multiple orchestration options**: Docker Swarm or Kubernetes
 - **Support for both editions**: Java and Bedrock
 - **Flexible configuration**: customization of version, game mode, difficulty
 - **Infrastructure as code**: using Terraform for provisioning
 - **Configuration automation**: using Ansible for configuration
-- **Orchestration with Docker Swarm**: for high availability and easy management
 - **Integrated monitoring**: with Prometheus and Grafana
 - **Automatic backup**: daily backup of Minecraft worlds
 - **Cluster visualization**: with Docker Visualizer
@@ -24,31 +24,59 @@ Mineclifford is a tool designed to facilitate the creation and management of Min
 - Terraform 0.13+
 - Ansible 2.9+
 - Docker
+- Kubernetes CLI (kubectl) for Kubernetes deployments
 - AWS or Azure account with permissions to create resources
 - AWS CLI (aws) or Azure CLI (az)
 
 ## Quick Start
 
-1. Clone this repository:
+### Docker Swarm Deployment
 
-   ```bash
+1. Clone this repository:
+   ```
    git clone https://github.com/your-username/mineclifford.git
    cd mineclifford
    ```
 
 2. Run the deployment script:
-
-   ```bash  
+   ```
    ./deploy-minecraft.sh --provider aws
    ```
 
 3. To customize the deployment:
-
-   ```bash
+   ```
    ./deploy-minecraft.sh --provider aws --minecraft-version 1.19 --mode creative --difficulty easy
    ```
 
+### Kubernetes Deployment
+
+1. Clone this repository:
+   ```
+   git clone https://github.com/your-username/mineclifford.git
+   cd mineclifford
+   ```
+
+2. Run the Kubernetes deployment script:
+   ```
+   ./deploy-kubernetes.sh --provider aws --k8s eks
+   ```
+
+3. To customize the Kubernetes deployment:
+   ```
+   ./deploy-kubernetes.sh --provider aws --k8s eks --minecraft-version 1.19 --mode creative --difficulty easy
+   ```
+
+### Local Testing
+
+For local testing without cloud deployment:
+
+```
+./run-local.sh --version 1.19 --mode creative --difficulty easy
+```
+
 ## Configuration Options
+
+### Docker Swarm Deployment Options
 
 The `deploy-minecraft.sh` script accepts the following options:
 
@@ -62,9 +90,27 @@ The `deploy-minecraft.sh` script accepts the following options:
 - `--no-rollback`: Disable rollback in case of failure
 - `-h, --help`: Show help message
 
+### Kubernetes Deployment Options
+
+The `deploy-kubernetes.sh` script accepts the following options:
+
+- `-p, --provider <aws|azure|gcp>`: Cloud provider (default: aws)
+- `-k, --k8s <eks|aks|gke|k3s>`: Kubernetes provider (default: eks)
+- `-s, --skip-infrastructure`: Skip infrastructure provisioning
+- `-n, --namespace NAMESPACE`: Kubernetes namespace (default: mineclifford)
+- `-v, --minecraft-version VERSION`: Minecraft version (default: latest)
+- `-m, --mode <survival|creative>`: Game mode (default: survival)
+- `-d, --difficulty <peaceful|easy|normal|hard>`: Game difficulty (default: normal)
+- `-b, --no-bedrock`: Disable Bedrock edition deployment
+- `--no-interactive`: Run in non-interactive mode
+- `--no-rollback`: Disable rollback in case of failure
+- `-h, --help`: Show help message
+
 ## Architecture
 
-Mineclifford uses a layered architecture:
+Mineclifford supports two different deployment architectures:
+
+### Docker Swarm Architecture
 
 1. **Infrastructure Provisioning** (Terraform):
    - Creates VPCs, subnets, security groups, and instances
@@ -81,6 +127,19 @@ Mineclifford uses a layered architecture:
    - Manages the network between services
    - Facilitates updates and maintenance
 
+### Kubernetes Architecture
+
+1. **Infrastructure Provisioning** (Terraform):
+   - Creates managed Kubernetes clusters (EKS on AWS, AKS on Azure)
+   - Configures networking and security
+   - Sets up storage classes and node groups
+
+2. **Kubernetes Deployment**:
+   - Deploys Minecraft servers as Kubernetes Deployments
+   - Creates services and persistent volumes
+   - Configures monitoring with Prometheus and Grafana
+   - Sets up ingress for web interfaces
+
 ## Deployed Services
 
 - **Minecraft Java Edition**: Port 25565
@@ -88,34 +147,76 @@ Mineclifford uses a layered architecture:
 - **RCON Web Admin**: Web interface for server administration
 - **Prometheus**: Metrics collection
 - **Grafana**: Metrics visualization and dashboards
-- **Docker Visualizer**: Docker Swarm cluster visualization
+- **Docker Visualizer** (Docker Swarm only): Docker Swarm cluster visualization
 
 ## Maintenance
 
 ### Backups
 
+#### Docker Swarm
+
 Backups are performed automatically every day at 4:00 AM and stored in `/home/ubuntu/minecraft-backups`. The last 5 backups are kept.
+
+#### Kubernetes
+
+Backups are handled through Kubernetes PersistentVolume snapshots. You can manage them using:
+
+```bash
+kubectl get volumesnapshots --namespace=mineclifford
+```
 
 ### Updates
 
+#### Docker Swarm
+
 Watchtower checks for updates daily and automatically updates container images.
+
+#### Kubernetes
+
+To update Minecraft versions or configuration in Kubernetes:
+
+```bash
+./deploy-kubernetes.sh --provider aws --k8s eks --minecraft-version <new-version> --skip-infrastructure
+```
 
 ### Monitoring
 
+#### Docker Swarm
+
 Access Grafana on port 3000 of your server to view metrics and server status.
+
+#### Kubernetes
+
+Access Grafana through the Ingress URL (typically http://monitor.your-domain.com).
 
 ## Troubleshooting
 
-### Check server logs
+### Docker Swarm
+
+#### Check server logs
 
 ```bash
 ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service logs Mineclifford_minecraft-java"
 ```
 
-### Restart services
+#### Restart services
 
 ```bash
 ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service update --force Mineclifford_minecraft-java"
+```
+
+### Kubernetes
+
+#### Check pod logs
+
+```bash
+kubectl logs -f -l app=minecraft-java --namespace=mineclifford
+```
+
+#### Restart deployments
+
+```bash
+kubectl rollout restart deployment minecraft-java --namespace=mineclifford
 ```
 
 ## Contributions
