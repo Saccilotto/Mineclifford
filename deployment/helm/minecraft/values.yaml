@@ -1,0 +1,172 @@
+# Default values for minecraft
+
+# Common configuration
+common:
+  nameOverride: ""
+  fullnameOverride: ""
+  labels:
+    app: minecraft
+    managed-by: mineclifford
+  annotations: {}
+
+# Java Edition configuration
+javaEdition:
+  enabled: true
+  image:
+    repository: itzg/minecraft-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  server:
+    type: PAPER
+    eula: true
+    gameMode: survival
+    difficulty: normal
+    motd: "Mineclifford Java Server"
+    memory: 2G
+    allowNether: true
+    enableCommandBlock: true
+    spawnProtection: 0
+    viewDistance: 10
+    maxPlayers: 20
+    ops: ""
+    whitelist: ""
+    onlineMode: true
+    resourcePack: ""
+    pvp: true
+  
+  service:
+    type: LoadBalancer
+    port: 25565
+  
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "500m"
+    limits:
+      memory: "3Gi"
+      cpu: "1000m"
+
+# Bedrock Edition configuration
+bedrockEdition:
+  enabled: true
+  image:
+    repository: itzg/minecraft-bedrock-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  server:
+    eula: true
+    gameMode: survival
+    difficulty: normal
+    serverName: "Mineclifford Bedrock Server"
+    levelName: Mineclifford
+    allowCheats: false
+    maxPlayers: 10
+    viewDistance: 10
+    defaultPlayerPermissionLevel: member
+  
+  service:
+    type: LoadBalancer
+    port: 19132
+    protocol: UDP
+  
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+    accessMode: ReadWriteOnce
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "300m"
+    limits:
+      memory: "2Gi"
+      cpu: "500m"
+
+# RCON configuration
+rcon:
+  enabled: true
+  image:
+    repository: itzg/rcon
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  password: "minecraft"
+  adminEnabled: true
+  webPort: 4326
+  rconPort: 4327
+  
+  service:
+    type: ClusterIP
+    port: 4326
+  
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 1Gi
+    accessMode: ReadWriteOnce
+
+# Monitoring configuration
+prometheus:
+  enabled: true
+  alertmanager:
+    enabled: false
+  server:
+    persistentVolume:
+      size: 2Gi
+
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 2Gi
+  adminPassword: "admin"
+  dashboards:
+    enabled: true
+    files:
+      minecraft-dashboard.json: |-
+        {
+          "annotations": {
+            "list": []
+          },
+          "title": "Minecraft Server Dashboard",
+          "uid": "minecraft",
+          "version": 1
+        }
+
+# Ingress for web interfaces
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: grafana.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: grafana
+          port: 3000
+    - host: prometheus.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: prometheus-server
+          port: 80
+  tls:
+    - secretName: minecraft-tls
+      hosts:
+        - grafana.example.com
+        - prometheus.example.com
+
+# Timezone configuration
+timezone: "America/Sao_Paulo"

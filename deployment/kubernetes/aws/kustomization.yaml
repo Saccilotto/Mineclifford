@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+
+namespace: mineclifford
+
+commonLabels:
+  environment: aws
+  provider: aws
+
+patches:
+  # Service patches for AWS
+  - path: patches/services-aws.yaml
+    target:
+      kind: Service
+  
+  # Storage class patches for AWS
+  - path: patches/storage-aws.yaml
+    target:
+      kind: PersistentVolumeClaim
+
+configMapGenerator:
+  - name: aws-config
+    literals:
+      - REGION=us-east-2
+      - CLUSTER_NAME=mineclifford-eks
+
+secretGenerator:
+  - name: aws-secrets
+    literals:
+      - AWS_ACCOUNT_ID=123456789012  # Replace with actual account ID
+
+images:
+  - name: itzg/minecraft-server
+    newTag: latest
+  - name: itzg/minecraft-bedrock-server
+    newTag: latest
+  - name: grafana/grafana
+    newTag: latest
+  - name: prom/prometheus
+    newTag: latest

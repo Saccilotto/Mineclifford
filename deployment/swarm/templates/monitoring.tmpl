@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:{{ prometheus_version | default('latest') }}
+    ports:
+      - "{{ prometheus_port | default('9090') }}:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        com.mineclifford.service: "prometheus"
+        com.mineclifford.type: "monitoring"
+    networks:
+      - minecraft_network
+      - traefik_network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:{{ grafana_version | default('latest') }}
+    ports:
+      - "{{ grafana_port | default('3000') }}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD={{ grafana_password | default('admin') }}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS={{ grafana_plugins | default('grafana-clock-panel,grafana-simple-json-datasource') }}
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        com.mineclifford.service: "grafana"
+        com.mineclifford.type: "monitoring"
+        # Traefik labels for reverse proxy
+        traefik.enable: "true"
+        traefik.http.routers.grafana.rule: "Host(`{{ grafana_domain | default('grafana.localhost') }}`)"
+        traefik.http.routers.grafana.entrypoints: "websecure"
+        traefik.http.routers.grafana.tls: "true"
+        traefik.http.services.grafana.loadbalancer.server.port: "3000"
+    networks:
+      - minecraft_network
+      - traefik_network
+
+  # Minecraft exporter for Prometheus
+  minecraft-exporter:
+    image: hkubota/minecraft-exporter:{{ minecraft_exporter_version | default('latest') }}
+    ports:
+      - "9150:9150"
+    environment:
+      - MC_SERVER=minecraft-java
+      - MC_PORT=25565
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      labels:
+        com.mineclifford.service: "minecraft-exporter"
+        com.mineclifford.type: "monitoring"
+    networks:
+      - minecraft_network
+
+  # Node exporter for hardware metrics
+  node-exporter:
+    image: prom/node-exporter:{{ node_exporter_version | default('latest') }}
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    deploy:
+      mode: global
+      labels:
+        com.mineclifford.service: "node-exporter"
+        com.mineclifford.type: "monitoring"
+    networks:
+      - minecraft_network
+
+volumes:
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ prometheus_data_path | default('/var/lib/prometheus') }}
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ grafana_data_path | default('/var/lib/grafana') }}
+
+networks:
+  minecraft_network:
+    external: true
+  traefik_network:
+    external: true

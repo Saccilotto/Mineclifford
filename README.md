@@ -33,36 +33,42 @@ Mineclifford is a tool designed to facilitate the creation and management of Min
 ### Docker Swarm Deployment
 
 1. Clone this repository:
-   ```
+
+   ```bash
    git clone https://github.com/your-username/mineclifford.git
    cd mineclifford
    ```
 
 2. Run the deployment script:
-   ```
+
+   ```bash
    ./deploy-minecraft.sh --provider aws
    ```
 
 3. To customize the deployment:
-   ```
+
+   ```bash
    ./deploy-minecraft.sh --provider aws --minecraft-version 1.19 --mode creative --difficulty easy
    ```
 
 ### Kubernetes Deployment
 
 1. Clone this repository:
-   ```
+
+   ```bash
    git clone https://github.com/your-username/mineclifford.git
    cd mineclifford
    ```
 
 2. Run the Kubernetes deployment script:
-   ```
+
+   ```bash
    ./deploy-kubernetes.sh --provider aws --k8s eks
    ```
 
 3. To customize the Kubernetes deployment:
-   ```
+
+   ```bash
    ./deploy-kubernetes.sh --provider aws --k8s eks --minecraft-version 1.19 --mode creative --difficulty easy
    ```
 
@@ -70,7 +76,7 @@ Mineclifford is a tool designed to facilitate the creation and management of Min
 
 For local testing without cloud deployment:
 
-```
+```bash
 ./run-local.sh --version 1.19 --mode creative --difficulty easy
 ```
 
@@ -153,11 +159,11 @@ Mineclifford supports two different deployment architectures:
 
 ### Backups
 
-#### Docker Swarm
+#### Docker Swarm Backups
 
 Backups are performed automatically every day at 4:00 AM and stored in `/home/ubuntu/minecraft-backups`. The last 5 backups are kept.
 
-#### Kubernetes
+#### Kubernetes Backup Monitoring
 
 Backups are handled through Kubernetes PersistentVolume snapshots. You can manage them using:
 
@@ -167,7 +173,7 @@ kubectl get volumesnapshots --namespace=mineclifford
 
 ### Updates
 
-#### Docker Swarm
+#### Docker Swarm Monitoring
 
 Watchtower checks for updates daily and automatically updates container images.
 
@@ -185,13 +191,13 @@ To update Minecraft versions or configuration in Kubernetes:
 
 Access Grafana on port 3000 of your server to view metrics and server status.
 
-#### Kubernetes
+#### Kubernetes Monitoring  
 
-Access Grafana through the Ingress URL (typically http://monitor.your-domain.com).
+Access Grafana through the Ingress URL (typically [http://monitor.your-domain.com](http://monitor.your-domain.com)).
 
 ## Troubleshooting
 
-### Docker Swarm
+### Docker Swarm Maintenance
 
 #### Check server logs
 
@@ -205,7 +211,7 @@ ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service logs Minecliffo
 ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service update --force Mineclifford_minecraft-java"
 ```
 
-### Kubernetes
+### Kubernetes Troubleshooting
 
 #### Check pod logs
 

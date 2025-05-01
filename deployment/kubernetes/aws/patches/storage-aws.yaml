@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    provider: aws
+    cloud: aws
+spec:
+  storageClassName: gp2
