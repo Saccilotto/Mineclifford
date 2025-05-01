@@ -26,7 +26,7 @@ Mineclifford is an automated provisioning and management tool for Minecraft serv
 
 ## Architecture
 
-![Architecture Diagram](docs/images/architecture.svg)
+![Architecture Diagram](docs/images/architecture.png)
 
 The diagram is organized into four primary layers:
 
