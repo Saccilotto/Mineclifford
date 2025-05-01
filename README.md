@@ -26,9 +26,39 @@ Mineclifford is an automated provisioning and management tool for Minecraft serv
 
 ## Architecture
 
-Mineclifford follows a modular architecture to support multiple cloud providers and orchestration methods:
+![Architecture Diagram](docs/images/architecture.svg)
 
-![Architecture Diagram](docs/images/architecture.png)
+The diagram is organized into four primary layers:
+
+1. **Infrastructure Layer** - Shows the cloud providers supported by the system:
+   - AWS: Provisions EC2 instances, VPC, security groups, and EKS clusters
+   - Azure: Deploys virtual machines, VNETs, NSGs, and AKS clusters
+
+2. **Orchestration Layer** - Presents the container orchestration options:
+   - Docker Swarm: For simpler deployments with service orchestration
+   - Kubernetes: For more complex, scalable deployments
+   - Local Docker: For development and testing
+
+3. **Application Layer** - Displays the core application components:
+   - Minecraft Java Server: Using the itzg/minecraft-server container
+   - Minecraft Bedrock Server: Using the itzg/minecraft-bedrock-server container
+   - RCON Web Admin: For server management
+
+4. **Monitoring Layer** - Shows the monitoring stack:
+   - Prometheus: For metrics collection and alerting
+   - Grafana: For visualization and dashboards
+   - Exporters & Agents: For collecting metrics from various sources
+
+At the top, the diagram also shows the automation tools used throughout the system:
+
+- Terraform: For infrastructure provisioning
+- Ansible: For configuration management
+- Kustomize: For Kubernetes configuration
+- Shell Scripts: For automation and orchestration
+
+The connecting lines indicate relationships between components, with solid lines showing direct dependencies and dashed lines showing optional paths.
+
+This architecture provides a comprehensive visualization of your multi-cloud, multi-orchestration Minecraft server deployment system, showcasing its flexibility and modularity.
 
 ### Components
 
