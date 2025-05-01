@@ -1,0 +1,72 @@
+groups:
+- name: minecraft_alerts
+  rules:
+  
+  # Player count alerts
+  - alert: MinecraftHighPlayerCount
+    expr: mc_players_online > 10
+    for: 5m
+    labels:
+      severity: info
+    annotations:
+      summary: "High player count on Minecraft server"
+      description: "There are {{ $value }} players currently online on the Minecraft server."
+
+  # Performance alerts
+  - alert: MinecraftLowTPS
+    expr: mc_tps < 15
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low TPS on Minecraft server"
+      description: "The Minecraft server is running at {{ $value }} ticks per second, which is below the optimal 20 TPS."
+
+  - alert: MinecraftCriticalTPS
+    expr: mc_tps < 10
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Critical TPS on Minecraft server"
+      description: "The Minecraft server is running at {{ $value }} ticks per second, which may cause significant lag."
+
+  # Server status alerts
+  - alert: MinecraftServerDown
+    expr: up{job="minecraft-java"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Minecraft server is down"
+      description: "The Minecraft server is not responding to metrics collection requests."
+
+  # Memory usage alerts
+  - alert: MinecraftHighMemoryUsage
+    expr: jvm_memory_bytes_used{job="minecraft-java"} / jvm_memory_bytes_max{job="minecraft-java"} > 0.85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on Minecraft server"
+      description: "The Minecraft server is using over 85% of its allocated memory."
+
+  # CPU usage alerts
+  - alert: MinecraftHighCPUUsage
+    expr: rate(process_cpu_seconds_total{job="minecraft-java"}[1m]) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage on Minecraft server"
+      description: "The Minecraft server is using over 80% of CPU resources."
+
+  # Resource exhaustion prediction
+  - alert: MinecraftMemoryExhaustionPredicted
+    expr: predict_linear(jvm_memory_bytes_used{job="minecraft-java"}[30m], 3600) > jvm_memory_bytes_max{job="minecraft-java"}
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Memory exhaustion predicted"
+      description: "Based on current trends, the Minecraft server may run out of memory within the next hour."

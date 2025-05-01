@@ -1,230 +1,235 @@
 # Mineclifford
 
-An automated provisioning tool for Minecraft servers on AWS and Azure.
+![Mineclifford Logo](docs/images/logo.png)
 
-## Description
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-Mineclifford is a tool designed to facilitate the creation and management of Minecraft servers, both Java and Bedrock editions. Using infrastructure as code (Terraform) and configuration automation (Ansible), Mineclifford allows you to deploy complete Minecraft servers in a matter of minutes on cloud providers such as AWS and Azure.
+## Overview
+
+Mineclifford is an automated provisioning and management tool for Minecraft servers on cloud infrastructure. It enables easy deployment, monitoring, and maintenance of Minecraft servers (both Java and Bedrock editions) on AWS and Azure, using either Docker Swarm or Kubernetes as the orchestration layer.
 
 ## Features
 
-- **Multiple provider support**: AWS and Azure
-- **Multiple orchestration options**: Docker Swarm or Kubernetes
-- **Support for both editions**: Java and Bedrock
-- **Flexible configuration**: customization of version, game mode, difficulty
-- **Infrastructure as code**: using Terraform for provisioning
-- **Configuration automation**: using Ansible for configuration
-- **Integrated monitoring**: with Prometheus and Grafana
-- **Automatic backup**: daily backup of Minecraft worlds
-- **Cluster visualization**: with Docker Visualizer
-- **Automatic updates**: with Watchtower
-
-## Requirements
-
-- Terraform 0.13+
-- Ansible 2.9+
-- Docker
-- Kubernetes CLI (kubectl) for Kubernetes deployments
-- AWS or Azure account with permissions to create resources
-- AWS CLI (aws) or Azure CLI (az)
-
-## Quick Start
-
-### Docker Swarm Deployment
-
-1. Clone this repository:
-
-   ```bash
-   git clone https://github.com/your-username/mineclifford.git
-   cd mineclifford
-   ```
-
-2. Run the deployment script:
-
-   ```bash
-   ./deploy-minecraft.sh --provider aws
-   ```
-
-3. To customize the deployment:
-
-   ```bash
-   ./deploy-minecraft.sh --provider aws --minecraft-version 1.19 --mode creative --difficulty easy
-   ```
-
-### Kubernetes Deployment
-
-1. Clone this repository:
-
-   ```bash
-   git clone https://github.com/your-username/mineclifford.git
-   cd mineclifford
-   ```
-
-2. Run the Kubernetes deployment script:
-
-   ```bash
-   ./deploy-kubernetes.sh --provider aws --k8s eks
-   ```
-
-3. To customize the Kubernetes deployment:
-
-   ```bash
-   ./deploy-kubernetes.sh --provider aws --k8s eks --minecraft-version 1.19 --mode creative --difficulty easy
-   ```
-
-### Local Testing
-
-For local testing without cloud deployment:
-
-```bash
-./run-local.sh --version 1.19 --mode creative --difficulty easy
-```
-
-## Configuration Options
-
-### Docker Swarm Deployment Options
-
-The `deploy-minecraft.sh` script accepts the following options:
-
-- `-p, --provider <aws|azure>`: Cloud provider (default: aws)
-- `-s, --skip-terraform`: Skip Terraform provisioning
-- `-v, --minecraft-version VERSION`: Minecraft version (default: latest)
-- `-m, --mode <survival|creative>`: Game mode (default: survival)
-- `-d, --difficulty <peaceful|easy|normal|hard>`: Game difficulty (default: normal)
-- `-b, --no-bedrock`: Disable Bedrock edition deployment
-- `--no-interactive`: Run in non-interactive mode
-- `--no-rollback`: Disable rollback in case of failure
-- `-h, --help`: Show help message
-
-### Kubernetes Deployment Options
-
-The `deploy-kubernetes.sh` script accepts the following options:
-
-- `-p, --provider <aws|azure|gcp>`: Cloud provider (default: aws)
-- `-k, --k8s <eks|aks|gke|k3s>`: Kubernetes provider (default: eks)
-- `-s, --skip-infrastructure`: Skip infrastructure provisioning
-- `-n, --namespace NAMESPACE`: Kubernetes namespace (default: mineclifford)
-- `-v, --minecraft-version VERSION`: Minecraft version (default: latest)
-- `-m, --mode <survival|creative>`: Game mode (default: survival)
-- `-d, --difficulty <peaceful|easy|normal|hard>`: Game difficulty (default: normal)
-- `-b, --no-bedrock`: Disable Bedrock edition deployment
-- `--no-interactive`: Run in non-interactive mode
-- `--no-rollback`: Disable rollback in case of failure
-- `-h, --help`: Show help message
+- **Multiple cloud providers**: AWS and Azure support
+- **Multiple orchestration options**: Docker Swarm, Kubernetes, or local Docker
+- **Support for both editions**: Java and Bedrock Minecraft
+- **Flexible configuration**: Version, game mode, difficulty, and more
+- **Infrastructure as code**: Terraform-based provisioning
+- **Configuration automation**: Ansible for server configuration
+- **Integrated monitoring**: Prometheus and Grafana dashboards
+- **Scheduled backups**: Automated daily backups of world data
+- **State management**: Consistent state handling across providers
+- **Scalable architecture**: Support for multiple server instances
 
 ## Architecture
 
-Mineclifford supports two different deployment architectures:
+Mineclifford follows a modular architecture to support multiple cloud providers and orchestration methods:
 
-### Docker Swarm Architecture
+![Architecture Diagram](docs/images/architecture.png)
 
-1. **Infrastructure Provisioning** (Terraform):
-   - Creates VPCs, subnets, security groups, and instances
-   - Configures firewall rules for Minecraft servers
-   - Generates and manages SSH keys for secure access
+### Components
 
-2. **Server Configuration** (Ansible):
-   - Installs and configures Docker and Docker Swarm
-   - Configures the system to run Minecraft servers
-   - Implements monitoring and backup system
+1. **Infrastructure Layer**:
+   - AWS (EC2, VPC, Security Groups, etc.)
+   - Azure (VM, VNET, NSG, etc.)
 
-3. **Container Orchestration** (Docker Swarm):
-   - Runs Minecraft servers in containers
-   - Manages the network between services
-   - Facilitates updates and maintenance
+2. **Orchestration Layer**:
+   - Docker Swarm for simpler deployments
+   - Kubernetes for more complex, scalable deployments
+   - Local Docker for development and testing
 
-### Kubernetes Architecture
+3. **Application Layer**:
+   - Minecraft Java Server
+   - Minecraft Bedrock Server
+   - RCON Web Admin
 
-1. **Infrastructure Provisioning** (Terraform):
-   - Creates managed Kubernetes clusters (EKS on AWS, AKS on Azure)
-   - Configures networking and security
-   - Sets up storage classes and node groups
+4. **Monitoring Layer**:
+   - Prometheus for metrics collection
+   - Grafana for visualization
+   - Node Exporter for host metrics
+   - Minecraft Exporter for game metrics
 
-2. **Kubernetes Deployment**:
-   - Deploys Minecraft servers as Kubernetes Deployments
-   - Creates services and persistent volumes
-   - Configures monitoring with Prometheus and Grafana
-   - Sets up ingress for web interfaces
+## Prerequisites
 
-## Deployed Services
+To use Mineclifford, you need:
 
-- **Minecraft Java Edition**: Port 25565
-- **Minecraft Bedrock Edition**: Port 19132/UDP
-- **RCON Web Admin**: Web interface for server administration
-- **Prometheus**: Metrics collection
-- **Grafana**: Metrics visualization and dashboards
-- **Docker Visualizer** (Docker Swarm only): Docker Swarm cluster visualization
+1. **Required CLI tools**:
+   - Terraform v1.0.0+
+   - Ansible v2.9+
+   - Docker and Docker Compose
+   - kubectl (for Kubernetes deployments)
+   - AWS CLI (for AWS deployments)
+   - Azure CLI (for Azure deployments)
 
-## Maintenance
+2. **Cloud provider credentials**:
+   - AWS: Configure using `aws configure` or environment variables
+   - Azure: Configure using `az login`
 
-### Backups
+3. **Environment setup**:
+   - Clone this repository
+   - Create a `.env` file with required variables (see `.env.example`)
 
-#### Docker Swarm Backups
+## Quick Start
 
-Backups are performed automatically every day at 4:00 AM and stored in `/home/ubuntu/minecraft-backups`. The last 5 backups are kept.
+### Using the Unified Operations Script
 
-#### Kubernetes Backup Monitoring
-
-Backups are handled through Kubernetes PersistentVolume snapshots. You can manage them using:
-
-```bash
-kubectl get volumesnapshots --namespace=mineclifford
-```
-
-### Updates
-
-#### Docker Swarm Monitoring
-
-Watchtower checks for updates daily and automatically updates container images.
-
-#### Kubernetes
-
-To update Minecraft versions or configuration in Kubernetes:
+The `minecraft-ops.sh` script provides a unified interface for all operations:
 
 ```bash
-./deploy-kubernetes.sh --provider aws --k8s eks --minecraft-version <new-version> --skip-infrastructure
+# Deploy with Docker Swarm on AWS
+./minecraft-ops.sh deploy --provider aws --orchestration swarm
+
+# Deploy with Kubernetes on Azure
+./minecraft-ops.sh deploy --provider azure --orchestration kubernetes --k8s aks
+
+# Deploy locally for testing
+./minecraft-ops.sh deploy --orchestration local
+
+# Check deployment status
+./minecraft-ops.sh status --provider aws --orchestration swarm
+
+# Destroy infrastructure
+./minecraft-ops.sh destroy --provider aws --orchestration swarm
 ```
 
-### Monitoring
+### Customizing Your Deployment
 
-#### Docker Swarm
+You can customize your Minecraft server by specifying options:
 
-Access Grafana on port 3000 of your server to view metrics and server status.
+```bash
+./minecraft-ops.sh deploy \
+  --provider aws \
+  --orchestration swarm \
+  --minecraft-version 1.19 \
+  --mode creative \
+  --difficulty peaceful \
+  --memory 4G
+```
 
-#### Kubernetes Monitoring  
+## Configuration
 
-Access Grafana through the Ingress URL (typically [http://monitor.your-domain.com](http://monitor.your-domain.com)).
+### Environment Variables
+
+Create a `.env` file with the following variables:
+
+```env
+# AWS Configuration (for AWS provider)
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-2
+
+# Azure Configuration (for Azure provider)
+AZURE_SUBSCRIPTION_ID=your_azure_subscription_id
+
+# Minecraft Configuration
+MINECRAFT_VERSION=latest
+MINECRAFT_GAMEMODE=survival
+MINECRAFT_DIFFICULTY=normal
+MINECRAFT_MEMORY=2G
+```
+
+For more configuration options, see [Configuration Guide](docs/configuration.md).
+
+### Terraform Variables
+
+The infrastructure can be customized through Terraform variables:
+
+- `project_name`: Name of the deployment (default: mineclifford)
+- `region`: AWS region or Azure location
+- `instance_type`: VM size/type
+- `server_names`: List of server instance names
+
+See [Terraform Variables Guide](docs/terraform-variables.md) for more details.
+
+## Monitoring
+
+Mineclifford includes a comprehensive monitoring solution:
+
+- **Metrics Collection**:
+  - Server resource usage (CPU, memory, network)
+  - Minecraft-specific metrics (players, TPS, etc.)
+  
+- **Dashboards**:
+  - Resource utilization
+  - Player activity
+  - Performance bottlenecks
+
+- **Alerting**:
+  - Server downtime
+  - Resource constraints
+  - Backup failures
+
+Access Grafana dashboards at:
+
+- Docker Swarm: [http://server-ip:3000](http://server-ip:3000)
+
+- Kubernetes: <http://grafana.your-domain.com>
+
+Default credentials: admin/admin (change on first login)
+
+## Backups
+
+Daily backups are configured automatically:
+
+- **Docker Swarm**: Backups stored in `/home/ubuntu/minecraft-backups`
+- **Kubernetes**: Volumes backed up using PVC snapshots
+
+To manually trigger a backup:
+
+```bash
+# For Docker Swarm
+ssh user@server-ip "/home/ubuntu/backup-minecraft.sh"
+
+# For Kubernetes
+kubectl exec -n mineclifford deploy/minecraft-java -- rcon-cli save-all
+```
+
+## Advanced Usage
+
+### Multi-Server Deployment
+
+To deploy multiple Minecraft servers:
+
+```bash
+./minecraft-ops.sh deploy \
+  --provider aws \
+  --orchestration swarm \
+  --server-names "survival,creative,adventure"
+```
+
+### Custom Mods and Plugins
+
+To add custom mods or plugins, see [Customization Guide](docs/customization.md).
+
+### Custom Domain and SSL
+
+To set up a custom domain with SSL:
+
+```bash
+./minecraft-ops.sh deploy \
+  --provider aws \
+  --orchestration swarm \
+  --domain your-domain.com \
+  --email your-email@example.com
+```
 
 ## Troubleshooting
 
-### Docker Swarm Maintenance
+Common issues and solutions are documented in [Troubleshooting Guide](docs/troubleshooting.md).
 
-#### Check server logs
+## Contributing
 
-```bash
-ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service logs Mineclifford_minecraft-java"
-```
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request.
 
-#### Restart services
+## License
 
-```bash
-ssh -i ssh_keys/instance1.pem ubuntu@<SERVER-IP> "docker service update --force Mineclifford_minecraft-java"
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Kubernetes Troubleshooting
+## Acknowledgments
 
-#### Check pod logs
-
-```bash
-kubectl logs -f -l app=minecraft-java --namespace=mineclifford
-```
-
-#### Restart deployments
-
-```bash
-kubectl rollout restart deployment minecraft-java --namespace=mineclifford
-```
-
-## Contributions
-
-Contributions are welcome! Please feel free to submit pull requests or open issues.
+- [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server) for the Docker images
+- [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/) for monitoring
+- [Terraform](https://www.terraform.io/) and [Ansible](https://www.ansible.com/) for automation

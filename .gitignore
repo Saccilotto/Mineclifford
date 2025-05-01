@@ -1,6 +1,12 @@
 # Local .terraform directories
 **/.terraform/*
 
+# Go workspace files
+*.mod
+*.sum
+
+# Compiled Python files
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
