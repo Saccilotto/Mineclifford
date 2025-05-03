@@ -130,6 +130,32 @@
     when: inventory_hostname != manager_node
     ignore_errors: yes
 
+  - name: Import Minecraft world if provided
+    block:
+      - name: Create temporary directory for world import
+        file:
+          path: /tmp/minecraft-world-import
+          state: directory
+          mode: '0755'
+        when: minecraft_world_import is defined
+      
+      - name: Copy world import file to server
+        copy:
+          src: "{{ minecraft_world_import }}"
+          dest: /tmp/minecraft-world-import/world.tar.gz
+          mode: '0644'
+        when: minecraft_world_import is defined
+      
+      - name: Add world import to Docker service
+        set_fact:
+          minecraft_java_environment: "{{ minecraft_java_environment | default({}) | combine({'WORLD': '/import_world'}) }}"
+        when: minecraft_world_import is defined
+      
+      - name: Add Docker volume bind for world import
+        set_fact:
+          minecraft_java_volumes: "{{ minecraft_java_volumes | default([]) + ['/tmp/minecraft-world-import:/import_world:ro'] }}"
+        when: minecraft_world_import is defined
+
   # Create directory for Prometheus config
   - name: Create Prometheus configuration directory
     file:
