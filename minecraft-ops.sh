@@ -518,7 +518,7 @@ function deploy_to_kubernetes {
         fi
     fi
     
-    # Handle world import if enabled
+# Handle world import if enabled
     if [[ "$MINECRAFT_WORLD_IMPORT_READY" == "true" && -f "$MINECRAFT_WORLD_IMPORT_TAR" ]]; then
         echo -e "${YELLOW}Setting up Kubernetes world import...${NC}"
         
@@ -658,6 +658,14 @@ EOF
     if [[ "$USE_BEDROCK" == "true" ]]; then
         kubectl rollout status deployment/minecraft-bedrock -n $NAMESPACE --timeout=300s || echo -e "${YELLOW}Minecraft Bedrock deployment still in progress...${NC}"
     fi
+
+    # Apply the patch for world import if needed
+    if [[ "$MINECRAFT_WORLD_IMPORT_READY" == "true" && -f "$MINECRAFT_WORLD_IMPORT_TAR" ]]; then
+        kubectl patch deployment minecraft-java -n $NAMESPACE --patch "$(cat /tmp/minecraft-java-patch.yaml)" || handle_error "Failed to patch deployment for world import" "kubernetes"
+        
+        # Delete the temporary pod once the deployment is updated
+        kubectl delete pod import-data-receiver -n $NAMESPACE
+    fi
     
     # Get service information for connecting
     echo -e "${YELLOW}Getting service information...${NC}"
@@ -685,7 +693,7 @@ function deploy_local {
     echo -e "  Memory: ${YELLOW}$MEMORY${NC}"
     echo -e "  Bedrock Edition: ${YELLOW}$([[ "$USE_BEDROCK" == "true" ]] && echo "Enabled" || echo "Disabled")${NC}"
     
-    # Create the docker-compose.yml file
+# Create the docker-compose.yml file
     cat > docker-compose.yml << EOF
 version: '3.8'
 
@@ -732,13 +740,6 @@ EOF
       - ./$MINECRAFT_WORLD_IMPORT_DIR:/import_world:ro
 EOF
     fi
-
-    # Continue with the rest of docker-compose.yml
-    cat >> docker-compose.yml << EOF
-    restart: unless-stopped
-    networks:
-      - minecraft_network
-EOF
 
     # Add Bedrock if enabled
     if [[ "$USE_BEDROCK" == "true" ]]; then
