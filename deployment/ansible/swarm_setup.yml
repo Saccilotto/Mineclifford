@@ -59,12 +59,11 @@
     become: yes
 
   - name: Install Docker SDK for Python
-    pip:
-      name:
-        - docker
-        - docker-compose
+    apt:
+      name: python3-docker
       state: present
-
+      update_cache: yes
+  
   - name: Add Docker's official GPG key and save it in the recommended keyring
     ansible.builtin.shell: |
       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -113,22 +112,22 @@
     ignore_errors: yes
 
   # Get the worker token
-  - name: Get swarm worker token
-    shell: docker swarm join-token -q worker
-    register: token_output
-    when: inventory_hostname == manager_node
+  # - name: Get swarm worker token
+  #   shell: docker swarm join-token -q worker
+  #   register: token_output
+  #   when: inventory_hostname == manager_node
 
-  # Set token as a fact on manager
-  - name: Set token fact on manager
-    set_fact:
-      worker_token: "{{ token_output.stdout }}"
-    when: inventory_hostname == manager_node
+  # # Set token as a fact on manager
+  # - name: Set token fact on manager
+  #   set_fact:
+  #     worker_token: "{{ token_output.stdout }}"
+  #   when: inventory_hostname == manager_node
 
-  # Join workers to swarm
-  - name: Join workers to swarm
-    shell: "docker swarm join --token {{ hostvars[groups['instance1'][0]].worker_token }} {{ groups['instance1'][0] }}:2377"
-    when: inventory_hostname != manager_node
-    ignore_errors: yes
+  # # Join workers to swarm
+  # - name: Join workers to swarm
+  #   shell: "docker swarm join --token {{ hostvars[groups['instance1'][0]].worker_token }} {{ groups['instance1'][0] }}:2377"
+  #   when: inventory_hostname != manager_node
+  #   ignore_errors: yes
 
   - name: Import Minecraft world if provided
     block:
@@ -192,7 +191,7 @@
     template:
       src: stack.env.j2
       dest: /home/{{ ansible_ssh_user }}/.env
-    delegate_to: "{{ manager_node }}"
+    delegate_to: "{{ manager_ip_result }}"
     run_once: true
 
   # Copy stack file
