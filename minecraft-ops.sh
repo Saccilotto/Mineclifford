@@ -17,14 +17,14 @@ DEPLOYMENT_LOG="minecraft_ops_$(date +%Y%m%d_%H%M%S).log"
 ROLLBACK_ENABLED=true
 MINECRAFT_VERSION="latest"
 MINECRAFT_MODE="survival"
-MINECRAFT_DIFFICULTY="normal"
-USE_BEDROCK=true
+MINECRAFT_DIFFICULTY="hard"
+USE_BEDROCK=false
 NAMESPACE="mineclifford"
 KUBERNETES_PROVIDER="eks"      # eks, aks
 MEMORY="2G"
 FORCE_CLEANUP=false
 SAVE_STATE=true
-STORAGE_TYPE="s3"              # s3, azure, github
+STORAGE_TYPE="github"          # s3, azure, github
 SERVER_NAMES=("instance1")     # Default server names
 WORLD_IMPORT=""
 
@@ -289,7 +289,10 @@ function run_terraform {
         echo -e "${YELLOW}Skipping Terraform provisioning as requested.${NC}"
         return
     fi
-    
+
+    SERVER_NAMES_STR=$(IFS=,; echo "${SERVER_NAMES[*]}")
+    SERVER_NAMES_TF_FORMAT="[\"${SERVER_NAMES_STR//,/\",\"}\"]"
+
     echo -e "${BLUE}Running Terraform for $PROVIDER...${NC}"
     
     # Determine the directory
@@ -317,7 +320,7 @@ function run_terraform {
     terraform init || handle_error "Terraform initialization failed" "terraform"
     
     echo -e "${YELLOW}Planning Terraform changes...${NC}"
-    terraform plan -out=tf.plan || handle_error "Terraform plan failed" "terraform"
+    terraform plan -var="vm_names=${SERVER_NAMES_TF_FORMAT}" -out=tf.plan || handle_error "Terraform plan failed" "terraform"
     
     echo -e "${YELLOW}Applying Terraform changes...${NC}"
     terraform apply tf.plan || handle_error "Terraform apply failed" "terraform"
@@ -367,7 +370,7 @@ function run_ansible {
     echo -e "${YELLOW}Setting SSH key permissions...${NC}"
     chmod 400 ssh_keys/*.pem
     
-    # Create vars file for Ansible
+    # Create vars file for Ansible with single_node_swarm info
     echo -e "${YELLOW}Creating Minecraft configuration vars...${NC}"
     cat > deployment/ansible/minecraft_vars.yml << EOF
 ---
@@ -399,6 +402,9 @@ timezone: "America/Sao_Paulo"
 # Server Names
 server_names:
 $(for name in "${SERVER_NAMES[@]}"; do echo "  - $name"; done)
+
+# Swarm Configuration
+single_node_swarm: $SINGLE_NODE_SWARM
 EOF
     
     if [[ -n "$MINECRAFT_WORLD_IMPORT" && -f "$MINECRAFT_WORLD_IMPORT" ]]; then
@@ -418,9 +424,9 @@ EOF
     # Run main playbook
     echo -e "${YELLOW}Running Minecraft setup playbook...${NC}"
     if [[ "$ORCHESTRATION" == "swarm" ]]; then
-        ansible-playbook -i ../../static_ip.ini swarm_setup.yml -e "@minecraft_vars.yml" || handle_error "Ansible playbook execution failed" "ansible"
+        ansible-playbook -i ../../static_ip.ini swarm_setup.yml -e "@minecraft_vars.yml" ${ANSIBLE_EXTRA_VARS:+-e "$ANSIBLE_EXTRA_VARS"} || handle_error "Ansible playbook execution failed" "ansible"
     else
-        ansible-playbook -i ../../static_ip.ini minecraft_setup.yml -e "@minecraft_vars.yml" || handle_error "Ansible playbook execution failed" "ansible"
+        ansible-playbook -i ../../static_ip.ini minecraft_setup.yml -e "@minecraft_vars.yml" ${ANSIBLE_EXTRA_VARS:+-e "$ANSIBLE_EXTRA_VARS"} || handle_error "Ansible playbook execution failed" "ansible"
     fi
     
     cd ../..
@@ -1470,11 +1476,30 @@ function deploy_infrastructure {
     if [[ "$ORCHESTRATION" == "kubernetes" ]]; then
         echo -e "Kubernetes Provider: ${BLUE}$KUBERNETES_PROVIDER${NC}"
     fi
+
+    # In the deploy_infrastructure function
+    if [[ "$PROVIDER" == "aws" ]]; then
+        KUBERNETES_PROVIDER="eks"
+    elif [[ "$PROVIDER" == "azure" ]]; then
+        KUBERNETES_PROVIDER="aks"
+    fi
+    
     echo -e "Server Names: ${BLUE}${SERVER_NAMES[*]}${NC}"
     echo -e "Version: ${BLUE}$MINECRAFT_VERSION${NC}"
     echo -e "Mode: ${BLUE}$MINECRAFT_MODE${NC}"
     echo -e "Difficulty: ${BLUE}$MINECRAFT_DIFFICULTY${NC}"
     echo -e "Log file: ${BLUE}$DEPLOYMENT_LOG${NC}"
+
+
+    if [[ ${#SERVER_NAMES[@]} -eq 1 ]]; then
+        echo -e "${YELLOW}Deploying with a single node. Configuring single-node swarm.${NC}"
+        SINGLE_NODE_SWARM=true
+    else
+        echo -e "${YELLOW}Deploying with a single node. Configuring single-node swarm.${NC}"
+        SINGLE_NODE_SWARM=false
+    fi
+
+    ANSIBLE_EXTRA_VARS="single_node_swarm=$SINGLE_NODE_SWARM"
     
     # Handle world importing preparation if specified
     if [[ -n "$WORLD_IMPORT" && -f "$WORLD_IMPORT" ]]; then

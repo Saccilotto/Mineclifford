@@ -9,15 +9,18 @@ services:
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     deploy:
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       labels:
         com.mineclifford.service: "prometheus"
         com.mineclifford.type: "monitoring"
@@ -32,14 +35,18 @@ services:
       - "{{ grafana_port | default('3000') }}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
     environment:
       - GF_SECURITY_ADMIN_PASSWORD={{ grafana_password | default('admin') }}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS={{ grafana_plugins | default('grafana-clock-panel,grafana-simple-json-datasource') }}
     deploy:
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       labels:
         com.mineclifford.service: "grafana"
         com.mineclifford.type: "monitoring"
@@ -90,6 +97,25 @@ services:
       mode: global
       labels:
         com.mineclifford.service: "node-exporter"
+        com.mineclifford.type: "monitoring"
+    networks:
+      - minecraft_network
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:{{ cadvisor_version | default('latest') }}
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    deploy:
+      mode: global
+      labels:
+        com.mineclifford.service: "cadvisor"
         com.mineclifford.type: "monitoring"
     networks:
       - minecraft_network

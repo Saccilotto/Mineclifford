@@ -29,9 +29,11 @@ services:
       - traefik_network
     deploy:
       mode: global
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       labels:
         - "traefik.enable=true"
         # Dashboard
@@ -54,9 +56,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 86400 --cleanup --include-stopped --include-restarting
     deploy:
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -73,9 +77,11 @@ services:
     networks:
       - traefik_network
     deploy:
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
@@ -95,9 +101,11 @@ services:
     networks:
       - traefik_network
     deploy:
+      {% if not single_node_swarm | default(false) %}
       placement:
         constraints:
           - node.role == manager
+      {% endif %}
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.visualizer.rule=Host(`visualizer.${DOMAIN_NAME}`)"

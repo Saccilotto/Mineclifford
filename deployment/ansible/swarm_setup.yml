@@ -16,6 +16,7 @@
     rcon_password: "minecraft"
     grafana_password: "admin"
     timezone: "America/Sao_Paulo"
+    single_node_swarm: "{{ groups['all'] | length == 1 }}"
 
   tasks:
   # Docker setup tasks
@@ -98,36 +99,55 @@
       - "{{ ansible_ssh_user }}"
     ignore_errors: yes
 
-  - name: Ensure Docker service is running
-    systemd:
-      name: docker
-      state: started
-      enabled: true
+  - name: Check if node is already part of a swarm
+    shell: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+    register: swarm_state
+    ignore_errors: yes
 
-  # Initialize swarm on manager
+  - name: Check if node is already part of a swarm
+    shell: docker info --format '{% raw %}{{.Swarm.LocalNodeState}}{% endraw %}'
+    register: swarm_state
+    ignore_errors: yes
+    
   - name: Initialize Swarm on manager node
     shell: docker swarm init --advertise-addr {{ inventory_hostname }}
-    when: inventory_hostname == manager_node
+    when: inventory_hostname == manager_node and swarm_state.stdout != "active"
     register: swarm_init
     ignore_errors: yes
 
-  # Get the worker token
-  # - name: Get swarm worker token
-  #   shell: docker swarm join-token -q worker
-  #   register: token_output
-  #   when: inventory_hostname == manager_node
-
-  # # Set token as a fact on manager
-  # - name: Set token fact on manager
-  #   set_fact:
-  #     worker_token: "{{ token_output.stdout }}"
-  #   when: inventory_hostname == manager_node
-
-  # # Join workers to swarm
-  # - name: Join workers to swarm
-  #   shell: "docker swarm join --token {{ hostvars[groups['instance1'][0]].worker_token }} {{ groups['instance1'][0] }}:2377"
-  #   when: inventory_hostname != manager_node
-  #   ignore_errors: yes
+  # Multi-node swarm setup
+  - name: Get swarm worker token
+    shell: docker swarm join-token -q worker
+    register: token_output
+    when: inventory_hostname == manager_node and not single_node_swarm and groups['all'] | length > 1
+    
+  - name: Set token fact on manager
+    set_fact:
+      worker_token: "{{ token_output.stdout }}"
+    when: inventory_hostname == manager_node and not single_node_swarm and token_output is defined and token_output.stdout is defined
+    
+  - name: Share token with workers
+    set_fact:
+      worker_token: "{{ hostvars[groups['instance1'][0]].worker_token }}"
+    when: inventory_hostname != manager_node and not single_node_swarm and hostvars[groups['instance1'][0]].worker_token is defined
+    
+  - name: Join workers to swarm
+    shell: "docker swarm join --token {{ worker_token }} {{ manager_node }}:2377"
+    when: inventory_hostname != manager_node and not single_node_swarm and worker_token is defined
+    ignore_errors: yes
+    
+  # For single node swarm
+  - name: Ensure node is a swarm manager in single-node mode
+    shell: docker swarm init --force-new-cluster --advertise-addr {{ inventory_hostname }}
+    when: single_node_swarm and swarm_state.stdout != "active"
+    ignore_errors: yes
+  
+  # Get manager node IP
+  - name: Get manager node IP
+    shell: hostname -I | awk '{print $1}'
+    register: manager_ip_result
+    delegate_to: "{{ manager_node }}"
+    run_once: true
 
   - name: Import Minecraft world if provided
     block:
@@ -191,16 +211,20 @@
     template:
       src: stack.env.j2
       dest: /home/{{ ansible_ssh_user }}/.env
-    delegate_to: "{{ manager_ip_result }}"
+    vars:
+      manager_ip: "{{ manager_ip_value }}"
+      single_node_swarm: "{{ groups['all'] | length == 1 }}"
+    delegate_to: "{{ manager_node }}"
     run_once: true
 
-  # Copy stack file
+  # Process stack.yml template with environment variables
   - name: Process stack.yml template with environment variables
     template:
       src: ../swarm/stack.yml
       dest: /home/{{ ansible_ssh_user }}/stack.yml
     vars:
       manager_ip: "{{ manager_ip_value }}"
+      single_node_swarm: "{{ groups['all'] | length == 1 }}"
     delegate_to: "{{ manager_node }}"
     run_once: true
 
