@@ -31,8 +31,10 @@ variable "public_key_path" {
   default = "~/.ssh/id_rsa.pub"
 }
 
-variable "vm_names" {
-  default = ["instance1"]
+variable "server_names" {
+  description = "List of server instance names to create"
+  type        = list(string)
+  default     = ["instance1"]
 }
 
 variable "username" {

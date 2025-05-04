@@ -15,7 +15,7 @@ func TestMinecliffordAWS(t *testing.T) {
 		TerraformDir: "../../terraform/aws",
 		Vars: map[string]interface{}{
 			"project_name": "mineclifford-test",
-			"vm_names":     []string{"test-instance"},
+			"server_names": []string{"test-instance"},
 			"region":       "us-east-2",
 		},
 		NoColor: true,
@@ -32,7 +32,7 @@ func TestMinecliffordAzure(t *testing.T) {
 		TerraformDir: "../../terraform/azure",
 		Vars: map[string]interface{}{
 			"resource_group_name": "mineclifford-test",
-			"vm_names":            []string{"test-instance"},
+			"server_names":        []string{"test-instance"},
 			"location":            "East US 2",
 		},
 		NoColor: true,
@@ -126,7 +126,7 @@ func TestMinecliffordStateConsistency(t *testing.T) {
 		TerraformDir: "../../terraform/aws",
 		Vars: map[string]interface{}{
 			"project_name": "mineclifford-state-test",
-			"vm_names":     []string{"state-test"},
+			"server_names": []string{"state-test"},
 		},
 		NoColor: true,
 	}

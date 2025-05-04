@@ -79,7 +79,7 @@ resource "aws_route_table_association" "rta" {
 
 # Create Elastic IPs for instances
 resource "aws_eip" "eip" {
-  for_each = toset(var.vm_names)
+  for_each = toset(var.server_names)
   domain   = "vpc"
   
   tags = merge(

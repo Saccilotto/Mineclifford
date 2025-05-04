@@ -1,12 +1,12 @@
 module "ssh_keys" {
   source         = "../modules/common/ssh-keys"
-  instance_names = var.vm_names
+  instance_names = var.server_names
   keys_path      = "${path.module}/../../ssh_keys"
 }
 
 # Create AWS key pairs from the module output
 resource "aws_key_pair" "generated_key" {
-  for_each   = toset(var.vm_names)
+  for_each   = toset(var.server_names)
   key_name   = "${each.key}-key-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   public_key = module.ssh_keys.public_keys[each.key]
 } 
@@ -33,7 +33,7 @@ data "aws_ami" "ubuntu" {
 
 # EC2 Instances
 resource "aws_instance" "instance" {
-  for_each      = toset(var.vm_names)
+  for_each      = toset(var.server_names)
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   subnet_id     = aws_subnet.subnet.id
@@ -64,7 +64,7 @@ resource "aws_instance" "instance" {
 
 # Associate Elastic IPs with instances
 resource "aws_eip_association" "eip_assoc" {
-  for_each       = toset(var.vm_names)
+  for_each       = toset(var.server_names)
   instance_id    = aws_instance.instance[each.key].id
   allocation_id  = aws_eip.eip[each.key].id
 }

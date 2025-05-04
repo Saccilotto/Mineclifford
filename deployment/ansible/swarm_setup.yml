@@ -234,6 +234,16 @@
     delegate_to: "{{ manager_node }}"
     run_once: true
 
+  - name: Process stack template
+    template:
+      src: ../swarm/stack.yml
+      dest: /home/{{ ansible_ssh_user }}/stack.yml
+    vars:
+      manager_ip: "{{ manager_ip_value }}"
+      single_node_swarm: "{{ groups['all'] | length == 1 }}"
+      # Exclude any conditional values that might break YAML
+      minecraft_world_import_enabled: false
+
   # Deploy the stack
   - name: Deploy the Minecraft stack
     shell: docker stack deploy --with-registry-auth -c /home/{{ ansible_ssh_user }}/stack.yml Mineclifford

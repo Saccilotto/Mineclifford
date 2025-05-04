@@ -290,8 +290,7 @@ function run_terraform {
         return
     fi
 
-    SERVER_NAMES_STR=$(IFS=,; echo "${SERVER_NAMES[*]}")
-    SERVER_NAMES_TF_FORMAT="[\"${SERVER_NAMES_STR//,/\",\"}\"]"
+    SERVER_NAMES_JSON=$(printf '"%s",' "${SERVER_NAMES[@]}" | sed 's/,$//')
 
     echo -e "${BLUE}Running Terraform for $PROVIDER...${NC}"
     
@@ -320,7 +319,7 @@ function run_terraform {
     terraform init || handle_error "Terraform initialization failed" "terraform"
     
     echo -e "${YELLOW}Planning Terraform changes...${NC}"
-    terraform plan -var="vm_names=${SERVER_NAMES_TF_FORMAT}" -out=tf.plan || handle_error "Terraform plan failed" "terraform"
+    terraform plan -var="server_names=[${SERVER_NAMES_JSON}]" -out=tf.plan || handle_error "Terraform plan failed" "terraform"
     
     echo -e "${YELLOW}Applying Terraform changes...${NC}"
     terraform apply tf.plan || handle_error "Terraform apply failed" "terraform"

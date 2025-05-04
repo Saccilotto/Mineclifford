@@ -1,11 +1,11 @@
 module "ssh_keys" {
   source         = "../modules/common/ssh-keys"
-  instance_names = var.vm_names
+  instance_names = var.server_names
   keys_path      = "${path.module}/../../ssh_keys"
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  for_each            = toset(var.vm_names)
+  for_each            = toset(var.server_names)
   name                = each.key
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name

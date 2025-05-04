@@ -29,7 +29,7 @@ resource "azurerm_subnet" "subnet" {
 }
 
 resource "azurerm_public_ip" "public_ip" {
-  for_each            = toset(var.vm_names)
+  for_each            = toset(var.server_names)
   name                = "mineclifford-public-ip-${each.key}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -41,7 +41,7 @@ resource "azurerm_public_ip" "public_ip" {
   }
 }
 resource "azurerm_network_interface" "nic" {
-  for_each            = toset(var.vm_names)
+  for_each            = toset(var.server_names)
   name                = "mineclifford-nic-${each.key}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name

@@ -39,7 +39,7 @@ Terraform variables can be set in a `.tfvars` file or passed directly to the `te
 | `vpc_cidr` | CIDR block for the VPC | `10.0.0.0/16` | `172.16.0.0/16` |
 | `subnet_cidr` | CIDR block for the subnet | `10.0.1.0/24` | `172.16.1.0/24` |
 | `instance_type` | EC2 instance type | `t2.small` | `t3.medium` |
-| `vm_names` | List of server instance names | `["instance1"]` | `["survival", "creative"]` |
+| `server_names` | List of server instance names | `["instance1"]` | `["survival", "creative"]` |
 | `username` | Username for SSH access | `ubuntu` | `admin` |
 
 ### Azure Terraform Variables
@@ -51,7 +51,7 @@ Terraform variables can be set in a `.tfvars` file or passed directly to the `te
 | `address_space` | Address space for the virtual network | `["10.0.0.0/16"]` | `["172.16.0.0/16"]` |
 | `subnet_prefixes` | Address prefixes for the subnet | `["10.0.1.0/24"]` | `["172.16.1.0/24"]` |
 | `vm_size` | Azure VM size | `Standard_B2s` | `Standard_D2s_v3` |
-| `vm_names` | List of VM names | `["instance1"]` | `["survival", "creative"]` |
+| `server_names` | List of VM names | `["instance1"]` | `["survival", "creative"]` |
 | `username` | Username for SSH access | `ubuntu` | `admin` |
 
 ## Docker Swarm Configuration
@@ -172,10 +172,10 @@ The default credentials for Grafana are:
 
 To deploy multiple Minecraft servers:
 
-1. Set the `vm_names` variable to a list of server names:
+1. Set the `server_names` variable to a list of server names:
 
    ```terraform
-   vm_names = ["survival", "creative", "adventure"]
+   server_names = ["survival", "creative", "adventure"]
    ```
 
 2. Configure each server separately in the Ansible variables or Kubernetes resources.
