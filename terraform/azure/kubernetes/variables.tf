@@ -10,6 +10,12 @@ variable "location" {
   default     = "East US 2"
 }
 
+variable "server_names" {
+  description = "List of server instance names to create"
+  type        = list(string)
+  default     = ["instance1"]
+}
+
 variable "azure_subscription_id" {
   description = "Azure Subscription ID"
   type        = string
@@ -24,7 +30,7 @@ variable "kubernetes_version" {
 variable "vm_size" {
   description = "Azure VM size"
   type        = string
-  default     = "Standard_DS2_v2"
+  default     = "Standard_B1s"
 }
 
 variable "min_node_count" {

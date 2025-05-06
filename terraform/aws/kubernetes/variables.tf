@@ -4,6 +4,12 @@ variable "region" {
   default     = "us-east-2"
 }
 
+variable "server_names" {
+  description = "List of server instance names to create"
+  type        = list(string)
+  default     = ["instance1"]
+}
+
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
@@ -19,7 +25,7 @@ variable "kubernetes_version" {
 variable "node_instance_type" {
   description = "EC2 instance type for the node groups"
   type        = string
-  default     = "t3.large"
+  default     = "t2.small"
 }
 
 variable "node_group_desired_capacity" {

@@ -323,16 +323,28 @@ function run_terraform {
     
     echo -e "${YELLOW}Applying Terraform changes...${NC}"
     terraform apply tf.plan || handle_error "Terraform apply failed" "terraform"
-    
-    # Extract outputs for reference
+
+    # Extract outputs section in run_terraform function
     echo -e "${YELLOW}Extracting Terraform outputs...${NC}"
-    
-    if [[ "$PROVIDER" == "aws" ]]; then
-        # Save instance public IPs to a file
-        terraform output -json instance_public_ips > ../../../instance_ips.json
-    elif [[ "$PROVIDER" == "azure" ]]; then
-        # Save VM public IPs to a file
-        terraform output -json vm_public_ips > ../../../instance_ips.json
+        
+    if [[ "$ORCHESTRATION" == "kubernetes" ]]; then
+        # For Kubernetes, extract cluster information instead of instance IPs
+        if [[ "$PROVIDER" == "aws" ]]; then
+            # Save cluster info from EKS
+            terraform output -json cluster_name > ../../../cluster_info.json 2>/dev/null || echo '{"cluster_name":"eks-cluster"}' > ../../../cluster_info.json
+        elif [[ "$PROVIDER" == "azure" ]]; then
+            # Save cluster info from AKS
+            terraform output -json kubernetes_cluster_name > ../../../cluster_info.json 2>/dev/null || echo '{"kubernetes_cluster_name":"aks-cluster"}' > ../../../cluster_info.json
+        fi
+    else
+        # For non-Kubernetes deployments, extract instance IPs
+        if [[ "$PROVIDER" == "aws" ]]; then
+            # Save instance public IPs to a file
+            terraform output -json instance_public_ips > ../../../instance_ips.json 2>/dev/null || echo '{}' > ../../../instance_ips.json
+        elif [[ "$PROVIDER" == "azure" ]]; then
+            # Save VM public IPs to a file
+            terraform output -json vm_public_ips > ../../../instance_ips.json 2>/dev/null || echo '{}' > ../../../instance_ips.json
+        fi
     fi
     
     cd - > /dev/null
@@ -424,9 +436,9 @@ EOF
     echo -e "${YELLOW}Running Minecraft setup playbook...${NC}"
     if [[ "$ORCHESTRATION" == "swarm" ]]; then
         ansible-playbook -i ../../static_ip.ini swarm_setup.yml -e "@minecraft_vars.yml" ${ANSIBLE_EXTRA_VARS:+-e "$ANSIBLE_EXTRA_VARS"} || handle_error "Ansible playbook execution failed" "ansible"
-    else
-        ansible-playbook -i ../../static_ip.ini minecraft_setup.yml -e "@minecraft_vars.yml" ${ANSIBLE_EXTRA_VARS:+-e "$ANSIBLE_EXTRA_VARS"} || handle_error "Ansible playbook execution failed" "ansible"
-    fi
+    fi #
+    #     ansible-playbook -i ../../static_ip.ini minecraft_setup.yml -e "@minecraft_vars.yml" ${ANSIBLE_EXTRA_VARS:+-e "$ANSIBLE_EXTRA_VARS"} || handle_error "Ansible playbook execution failed" "ansible"
+    # fi
     
     cd ../..
     
@@ -1472,9 +1484,6 @@ function deploy_infrastructure {
     echo -e "${BLUE}Starting Minecraft deployment with the following configuration:${NC}"
     echo -e "Provider: ${BLUE}$PROVIDER${NC}"
     echo -e "Orchestration: ${BLUE}$ORCHESTRATION${NC}"
-    if [[ "$ORCHESTRATION" == "kubernetes" ]]; then
-        echo -e "Kubernetes Provider: ${BLUE}$KUBERNETES_PROVIDER${NC}"
-    fi
 
     # In the deploy_infrastructure function
     if [[ "$PROVIDER" == "aws" ]]; then
@@ -1525,11 +1534,16 @@ function deploy_infrastructure {
     
     run_terraform
 
-    run_ansible
+    if [[ "$ORCHESTRATION" != "kubernetes" ]]; then
+        run_ansible
+    else                                                
+        echo -e "${YELLOW}Skipping Ansible for Kubernetes deployment and proceeding directly to Kubernetes setup...${NC}"
+        deploy_to_kubernetes
+    fi
 
     # Show connection information
     check_status
-}
+}                       
 
 # Parse command line arguments
 # First parameter is the action
