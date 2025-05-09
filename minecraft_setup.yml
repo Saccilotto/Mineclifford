@@ -1,0 +1,156 @@
+---
+- name: Setup Minecraft Server
+  hosts: minecraft
+  become: yes
+  vars:
+    minecraft_version: "{{ minecraft_version | default('1.19.2') }}"
+    minecraft_memory: "{{ minecraft_memory | default('2G') }}"
+    minecraft_dir: "/opt/minecraft"
+    minecraft_user: "minecraft"
+    import_world: "{{ import_world | default('') }}"
+    force_version: "{{ force_version | default('') }}"
+    # Version-specific URL mapping
+    minecraft_urls:
+      "1.25.5": "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+      "1.24.4": "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
+  
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      
+    - name: Install required packages
+      apt:
+        name:
+          - openjdk-17-jre-headless
+          - screen
+          - unzip
+          - wget
+          - htop
+        state: present
+        
+    - name: Create minecraft user
+      user:
+        name: "{{ minecraft_user }}"
+        system: yes
+        home: "{{ minecraft_dir }}"
+        shell: /usr/sbin/nologin
+        
+    - name: Create minecraft directory
+      file:
+        path: "{{ minecraft_dir }}"
+        state: directory
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+    
+    # Determine server URL based on force_version or default
+    - name: Set server URL
+      set_fact:
+        minecraft_server_url: "{{ minecraft_urls[force_version] if force_version != '' and force_version in minecraft_urls else minecraft_urls[minecraft_version] }}"
+        
+    - name: Download Minecraft server
+      get_url:
+        url: "{{ minecraft_server_url }}"
+        dest: "{{ minecraft_dir }}/server.jar"
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+    
+    # World importation logic
+    - name: Check if world import is specified
+      set_fact:
+        do_import: "{{ import_world != '' }}"
+      
+    - name: Create world directory
+      file:
+        path: "{{ minecraft_dir }}/world"
+        state: directory
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+      when: do_import
+      
+    - name: Upload world archive
+      copy:
+        src: "{{ import_world }}"
+        dest: "{{ minecraft_dir }}/world.zip"
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0644'
+      when: do_import
+      
+    - name: Extract world archive
+      unarchive:
+        src: "{{ minecraft_dir }}/world.zip"
+        dest: "{{ minecraft_dir }}/world"
+        remote_src: yes
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+      when: do_import
+    
+    # Configure server.properties to use imported world
+    - name: Configure server properties
+      copy:
+        dest: "{{ minecraft_dir }}/server.properties"
+        content: |
+          level-name=world
+          gamemode=survival
+          difficulty=hard
+          spawn-protection=16
+          max-players=25
+          view-distance=15
+          server-port=25565
+          enable-command-block=true
+          allow-nether=true
+          enforce-whitelist=false
+          motd=Imported Minecraft World
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0644'
+      when: do_import
+        
+    - name: Create start script
+      copy:
+        dest: "{{ minecraft_dir }}/start.sh"
+        content: |
+          #!/bin/bash
+          cd {{ minecraft_dir }}
+          java -Xmx{{ minecraft_memory }} -Xms{{ minecraft_memory }} -jar server.jar nogui
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0755'
+        
+    - name: Accept EULA
+      copy:
+        dest: "{{ minecraft_dir }}/eula.txt"
+        content: "eula=true"
+        owner: "{{ minecraft_user }}"
+        group: "{{ minecraft_user }}"
+        mode: '0644'
+        
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/minecraft.service
+        content: |
+          [Unit]
+          Description=Minecraft Server
+          After=network.target
+
+          [Service]
+          User={{ minecraft_user }}
+          Group={{ minecraft_user }}
+          WorkingDirectory={{ minecraft_dir }}
+          ExecStart={{ minecraft_dir }}/start.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+        
+    - name: Enable and start Minecraft service
+      systemd:
+        name: minecraft
+        enabled: yes
+        state: started
+        daemon_reload: yes
