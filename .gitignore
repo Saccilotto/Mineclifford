@@ -43,3 +43,7 @@ override.tf.json
 terraform.rc
 
 *.json
+
+# Minecraft Worlds
+
+*.zip
