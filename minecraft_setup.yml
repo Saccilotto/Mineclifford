@@ -11,8 +11,8 @@
     force_version: "{{ force_version | default('') }}"
     # Version-specific URL mapping
     minecraft_urls:
-      "1.25.5": "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
-      "1.24.4": "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
+      "1.22.5": "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+      "1.21.4": "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
   
   tasks:
     - name: Update apt cache
