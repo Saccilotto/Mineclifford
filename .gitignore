@@ -1,5 +1,6 @@
 # Local .terraform directories
 **/.terraform/*
+*.hcl
 
 # Go workspace files
 *.mod
@@ -47,3 +48,6 @@ terraform.rc
 # Minecraft Worlds
 
 *.zip
+
+*.pem
+*.ini

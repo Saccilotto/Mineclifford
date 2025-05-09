@@ -45,18 +45,21 @@ until ssh -i minecraft_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=5 u
   sleep 5
 done
 
-# Prepare Ansible extra vars
-ANSIBLE_VARS=""
+# Run Ansible playbook
+ANSIBLE_EXTRA=""
 if [ -n "$IMPORT_WORLD" ]; then
-  ANSIBLE_VARS="$ANSIBLE_VARS import_world=$IMPORT_WORLD"
+  ANSIBLE_EXTRA="$ANSIBLE_EXTRA import_world=$IMPORT_WORLD"
 fi
 if [ -n "$FORCE_VERSION" ]; then
-  ANSIBLE_VARS="$ANSIBLE_VARS force_version=$FORCE_VERSION"
+  ANSIBLE_EXTRA="$ANSIBLE_EXTRA force_version=$FORCE_VERSION"
 fi
 
-# Run Ansible playbook
 echo -e "${YELLOW}Running Ansible playbook...${NC}"
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini minecraft_setup.yml ${ANSIBLE_VARS:+-e "$ANSIBLE_VARS"}
+if [ -n "$ANSIBLE_EXTRA" ]; then
+  ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini minecraft_setup.yml -e "$ANSIBLE_EXTRA"
+else
+  ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini minecraft_setup.yml
+fi
 
 # Done
 echo -e "${GREEN}Deployment completed successfully!${NC}"

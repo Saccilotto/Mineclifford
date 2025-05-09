@@ -4,15 +4,15 @@
   become: yes
   vars:
     minecraft_version: "{{ minecraft_version | default('1.19.2') }}"
-    minecraft_memory: "{{ minecraft_memory | default('2G') }}"
+    minecraft_memory: "3G"
     minecraft_dir: "/opt/minecraft"
     minecraft_user: "minecraft"
     import_world: "{{ import_world | default('') }}"
     force_version: "{{ force_version | default('') }}"
-    # Version-specific URL mapping
-    minecraft_urls:
-      "1.22.5": "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
-      "1.21.4": "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
+    default_version: "1.21.5"
+    # Version-specific URLs 
+    minecraft_url_1_22_5: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+    minecraft_url_1_21_4: "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
   
   tasks:
     - name: Update apt cache
@@ -22,13 +22,22 @@
     - name: Install required packages
       apt:
         name:
-          - openjdk-17-jre-headless
           - screen
           - unzip
           - wget
           - htop
         state: present
-        
+
+    - name: Add OpenJDK PPA repository
+      apt_repository:
+        repo: ppa:openjdk-r/ppa
+        state: present
+  
+    - name: Install required packages
+      apt:
+        name:
+          - openjdk-21-jre-headless
+      
     - name: Create minecraft user
       user:
         name: "{{ minecraft_user }}"
@@ -43,11 +52,25 @@
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0755'
-    
-    # Determine server URL based on force_version or default
-    - name: Set server URL
+
+    - name: Set target version
       set_fact:
-        minecraft_server_url: "{{ minecraft_urls[force_version] if force_version != '' and force_version in minecraft_urls else minecraft_urls[minecraft_version] }}"
+        target_version: "{{ force_version if force_version != '' else default_version }}"
+    
+    - name: Set server URL for 1.21.4
+      set_fact:
+        minecraft_server_url: "{{ minecraft_url_1_21_4 }}"
+      when: target_version == "1.21.4"
+
+    - name: Set server URL for 1.22.5
+      set_fact:
+        minecraft_server_url: "{{ minecraft_url_1_22_5 }}"
+      when: target_version == "1.22.5"
+
+    - name: Set default server URL if version not found
+      set_fact:
+        minecraft_server_url: "{{ minecraft_url_1_22_5 }}"
+      when: minecraft_server_url is not defined
         
     - name: Download Minecraft server
       get_url:
@@ -99,12 +122,12 @@
           difficulty=hard
           spawn-protection=16
           max-players=25
-          view-distance=15
+          view-distance=10
           server-port=25565
           enable-command-block=true
           allow-nether=true
           enforce-whitelist=false
-          motd=Imported Minecraft World
+          motd=Mineclifford Server
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0644'

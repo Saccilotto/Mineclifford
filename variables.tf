@@ -5,7 +5,7 @@ variable "region" {
 
 variable "instance_type" {
   description = "EC2 instance type"
-  default     = "t3.medium"
+  default     = "t2.medium"
 }
 
 variable "minecraft_version" {
@@ -15,7 +15,7 @@ variable "minecraft_version" {
 
 variable "minecraft_memory" {
   description = "Memory allocated to Minecraft server"
-  default     = "2G"
+  default     = "3G"
 }
 
 variable "import_world" {
