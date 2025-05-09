@@ -87,7 +87,7 @@
       
     - name: Create world directory
       file:
-        path: "{{ minecraft_dir }}/world"
+        path: "./{{ minecraft_dir }}"
         state: directory
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
@@ -97,7 +97,7 @@
     - name: Upload world archive
       copy:
         src: "{{ import_world }}"
-        dest: "{{ minecraft_dir }}/world.zip"
+        dest: "./{{ minecraft_dir }}/world.zip"
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0644'
@@ -106,7 +106,7 @@
     - name: Extract world archive
       unarchive:
         src: "{{ minecraft_dir }}/world.zip"
-        dest: "{{ minecraft_dir }}/world"
+        dest: "./{{ minecraft_dir }}"
         remote_src: yes
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
