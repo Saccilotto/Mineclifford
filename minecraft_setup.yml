@@ -3,12 +3,11 @@
   hosts: minecraft
   become: yes
   vars:
-    minecraft_version: "{{ minecraft_version | default('1.19.2') }}"
-    minecraft_memory: "4G"
+    minecraft_memory: "3G"
     minecraft_dir: "/opt/minecraft"
     minecraft_user: "minecraft"
-    import_world: "{{ import_world | default('') }}"
-    force_version: "{{ force_version | default('') }}"
+    import_world: "{{ lookup('env', 'import_world', default='') }}"
+    force_version: "{{ lookup('env', 'force_version', default='') }}"
     default_version: "1.22.5"
     # Version-specific URLs 
     minecraft_url_1_22_5: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
@@ -55,8 +54,13 @@
 
     - name: Set target version
       set_fact:
-        target_version: "{{ force_version if force_version != '' else default_version }}"
-    
+        target_version: "{{ default_version }}"
+
+    - name: Override target version if force_version is specified
+      set_fact:
+        target_version: "{{ force_version }}"
+      when: "force_version is defined and force_version != ''"
+
     - name: Set server URL for 1.21.4
       set_fact:
         minecraft_server_url: "{{ minecraft_url_1_21_4 }}"
@@ -87,7 +91,7 @@
       
     - name: Create world directory
       file:
-        path: "./{{ minecraft_dir }}"
+        path: "{{ minecraft_dir }}"
         state: directory
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
@@ -97,7 +101,7 @@
     - name: Upload world archive
       copy:
         src: "{{ import_world }}"
-        dest: "./{{ minecraft_dir }}/world.zip"
+        dest: "{{ minecraft_dir }}"
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0644'
@@ -106,7 +110,7 @@
     - name: Extract world archive
       unarchive:
         src: "{{ minecraft_dir }}/world.zip"
-        dest: "./{{ minecraft_dir }}"
+        dest: "{{ minecraft_dir }}/world"
         remote_src: yes
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
@@ -158,7 +162,6 @@
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0644'
-      when: do_import
         
     - name: Create start script
       copy:

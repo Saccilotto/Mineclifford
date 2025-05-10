@@ -50,8 +50,13 @@ ANSIBLE_EXTRA=""
 if [ -n "$IMPORT_WORLD" ]; then
   ANSIBLE_EXTRA="$ANSIBLE_EXTRA import_world=$IMPORT_WORLD"
 fi
+
 if [ -n "$FORCE_VERSION" ]; then
-  ANSIBLE_EXTRA="$ANSIBLE_EXTRA force_version=$FORCE_VERSION"
+  if [ -n "$ANSIBLE_EXTRA" ]; then
+    ANSIBLE_EXTRA="$ANSIBLE_EXTRA force_version=$FORCE_VERSION"
+  else
+    ANSIBLE_EXTRA="force_version=$FORCE_VERSION"
+  fi
 fi
 
 echo -e "${YELLOW}Running Ansible playbook...${NC}"
