@@ -25,6 +25,8 @@ resource "aws_internet_gateway" "minecraft_igw" {
   tags = {
     Name = "minecraft-igw"
   }
+  
+  depends_on = [aws_vpc.minecraft_vpc]
 }
 
 resource "aws_route_table" "minecraft_route_table" {
@@ -41,6 +43,11 @@ resource "aws_route_table" "minecraft_route_table" {
 resource "aws_route_table_association" "minecraft_rta" {
   subnet_id      = aws_subnet.minecraft_subnet.id
   route_table_id = aws_route_table.minecraft_route_table.id
+  
+  depends_on = [
+    aws_subnet.minecraft_subnet,
+    aws_route_table.minecraft_route_table
+  ]
 }
 
 resource "aws_security_group" "minecraft_sg" {
@@ -114,6 +121,12 @@ resource "aws_instance" "minecraft_server" {
   key_name               = aws_key_pair.minecraft_keypair.key_name
   subnet_id              = aws_subnet.minecraft_subnet.id
   vpc_security_group_ids = [aws_security_group.minecraft_sg.id]
+
+  depends_on = [
+    aws_subnet.minecraft_subnet,
+    aws_route_table_association.minecraft_rta,
+    aws_security_group.minecraft_sg
+  ]
 
   root_block_device {
     volume_size = 20

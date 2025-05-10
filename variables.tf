@@ -1,6 +1,6 @@
 variable "region" {
   description = "AWS region"
-  default     = "sa-east-1"   // São Paulo, Brazil
+  default     = "sa-east-1"   # São Paulo
 }
 
 variable "instance_type" {
@@ -11,11 +11,6 @@ variable "instance_type" {
 variable "minecraft_version" {
   description = "Minecraft server version"
   default     = "1.22.5"
-}
-
-variable "minecraft_memory" {
-  description = "Memory allocated to Minecraft server"
-  default     = "4G"
 }
 
 variable "import_world" {
