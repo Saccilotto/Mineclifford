@@ -4,12 +4,12 @@
   become: yes
   vars:
     minecraft_version: "{{ minecraft_version | default('1.19.2') }}"
-    minecraft_memory: "3G"
+    minecraft_memory: "4G"
     minecraft_dir: "/opt/minecraft"
     minecraft_user: "minecraft"
     import_world: "{{ import_world | default('') }}"
     force_version: "{{ force_version | default('') }}"
-    default_version: "1.21.5"
+    default_version: "1.22.5"
     # Version-specific URLs 
     minecraft_url_1_22_5: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
     minecraft_url_1_21_4: "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
@@ -117,17 +117,44 @@
       copy:
         dest: "{{ minecraft_dir }}/server.properties"
         content: |
+          # World settings
           level-name=world
           gamemode=survival
           difficulty=hard
+          hardcore=false
           spawn-protection=16
           max-players=25
-          view-distance=10
+          
+          # Performance settings
+          view-distance=8
+          simulation-distance=6
+          entity-broadcast-range-percentage=100
+          max-tick-time=60000
+          
+          # Network settings
           server-port=25565
+          network-compression-threshold=256
+          rate-limit=0
+          use-native-transport=true
+          
+          # Game mechanics
           enable-command-block=true
           allow-nether=true
+          max-world-size=29999984
+          spawn-npcs=true
+          spawn-animals=true
+          spawn-monsters=true
+          
+          # Server appearance
           enforce-whitelist=false
-          motd=Mineclifford Server
+          motd=Mineclifford a Famouso Solutions Server
+          
+          # Additional performance optimizations
+          max-chained-neighbor-updates=1000000
+          entity-activation-range-animals=16
+          entity-activation-range-monsters=24
+          entity-activation-range-villagers=16
+          entity-activation-range-flying-monsters=32
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
         mode: '0644'
