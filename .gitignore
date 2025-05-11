@@ -48,6 +48,6 @@ terraform.rc
 # Minecraft Worlds
 
 *.zip
-
+/world_imports
 *.pem
 *.ini
