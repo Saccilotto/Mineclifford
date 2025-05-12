@@ -206,8 +206,8 @@
           max-players=25
           
           # Performance settings
-          view-distance=8
-          simulation-distance=6
+          view-distance=12
+          simulation-distance=12
           entity-broadcast-range-percentage=100
           max-tick-time=60000
           
