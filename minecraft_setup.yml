@@ -9,12 +9,12 @@
     import_world: "{{ lookup('env', 'import_world', default='') }}"
     force_version: "{{ lookup('env', 'force_version', default='') }}"
     force_server_type: "{{ lookup('env', 'server_type', default='') }}"
-    default_version: "1.22.5"
+    default_version: "1.21.5"
     server_type: "vanilla"  # Default server type
     # Version-specific URLs for vanilla Minecraft server
-    vanilla_url_1_22_5: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+    vanilla_url_1_21_5: "https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
     vanilla_url_1_21_4: "https://piston-data.mojang.com/v1/objects/4707d00eb834b446575d89a61a11b5d548d8c001/server.jar"
-    # URLs for Paper versions (Note: No 1.22.x versions available for Paper yet)
+    # URLs for Paper versions
     paper_url_1_21_5: "https://api.papermc.io/v2/projects/paper/versions/1.21.5/builds/76/downloads/paper-1.21.5-76.jar"
     paper_url_1_21_4: "https://api.papermc.io/v2/projects/paper/versions/1.21.4/builds/229/downloads/paper-1.21.4-229.jar"
     # Latest Paper version to use as fallback
@@ -67,14 +67,14 @@
       set_fact:
         do_import: "{{ import_world != '' }}"
       
-    - name: Create world directory
-      file:
-        path: "{{ minecraft_dir }}/world"
-        state: directory
-        owner: "{{ minecraft_user }}"
-        group: "{{ minecraft_user }}"
-        mode: '0755'
-      when: do_import
+    # - name: Create world directory
+    #   file:
+    #     path: "{{ minecraft_dir }}/world"
+    #     state: directory
+    #     owner: "{{ minecraft_user }}"
+    #     group: "{{ minecraft_user }}"
+    #     mode: '0755'
+    #   when: do_import
       
     - name: Upload world archive
       copy:
@@ -88,7 +88,7 @@
     - name: Extract world archive
       unarchive:
         src: "{{ minecraft_dir }}/world.zip"
-        dest: "{{ minecraft_dir }}/world"
+        dest: "{{ minecraft_dir }}"
         remote_src: yes
         owner: "{{ minecraft_user }}"
         group: "{{ minecraft_user }}"
@@ -166,7 +166,7 @@
 
     - name: Set server URL for vanilla 1.22.5
       set_fact:
-        minecraft_server_url: "{{ vanilla_url_1_22_5 }}"
+        minecraft_server_url: "{{ vanilla_url_1_21_5 }}"
       when: server_type == "vanilla" and target_version == "1.22.5"
 
     - name: Set server URL for paper 1.21.4
@@ -181,7 +181,7 @@
 
     - name: Set default server URL if version not found
       set_fact:
-        minecraft_server_url: "{{ vanilla_url_1_22_5 if server_type == 'vanilla' else paper_latest_url }}"
+        minecraft_server_url: "{{ vanilla_url_1_21_5 if server_type == 'vanilla' else paper_latest_url }}"
       when: minecraft_server_url is not defined
         
     - name: Download server jar
@@ -206,8 +206,8 @@
           max-players=25
           
           # Performance settings
-          view-distance=12
-          simulation-distance=12
+          view-distance=16
+          simulation-distance=14
           entity-broadcast-range-percentage=100
           max-tick-time=60000
           
