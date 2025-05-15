@@ -199,15 +199,16 @@
         content: |
           # World settings
           level-name=world
+          online-mode=false
           gamemode=survival
-          difficulty=hard
+          difficulty=normal
           hardcore=false
           spawn-protection=16
-          max-players=25
+          max-players=24
           
           # Performance settings
-          view-distance=16
-          simulation-distance=14
+          view-distance=18
+          simulation-distance=16
           entity-broadcast-range-percentage=100
           max-tick-time=60000
           
@@ -227,7 +228,7 @@
           
           # Server appearance
           enforce-whitelist=false
-          motd=Mineclifford a Famouso Solutions Server
+          motd=Mineclifford a Mago Solution
           
           # Additional performance optimizations
           max-chained-neighbor-updates=1000000
